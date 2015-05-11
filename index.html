@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sonoport Demo</title>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.17/require.min.js"></script>
+</head>
+<style>
+body {
+  background-color: black;
+  color: white;
+  font-family: monospace;
+  font-size: 24px;
+}
+video {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+form {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+input[type=search] {
+  font-size: 24px;
+  font-family: monospace;
+  display: inline-block;
+  text-align: center;
+}
+input[type=range] {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+</style>
+<body>
+<form id="imageSearch">
+  <input id="imageSearchField" type="search" placeholder="Loop image..." value="" />
+  <button type="submit">Search</button>
+</form>
+<form id="soundSearch">
+  <input id="soundSearchField" type="search" placeholder="Loop sound..." value="" />
+  <button type="submit">Search</button>
+</form>
+<video id="animationStage" autoplay loop>
+  <source id="animationMP4" type="video/mp4">
+</video>
+<input id="playSpeed" type="range" min="0.1" max="10">
+<script>
+require.config({
+  baseUrl: 'http://sdk.sonoport.com/js/2.5.5'
+})
+function spotify (q) {
+  return $.ajax('https://api.spotify.com/v1/search?q=' + q + '&type=track')
+}
+function getSound (q, cb) {
+  spotify(q).then(function (res) {
+    var snd = res.tracks.items[0].preview_url
+    cb(null, snd)
+  })
+}
+function giphy (term) {
+  return $.ajax('http://api.giphy.com/v1/gifs/search?q=' + encodeURIComponent(term) + '&api_key=dc6zaTOxFJmzC')
+}
+function getImage (q, cb) {
+  giphy(q).then(function (res) {
+    var gif = res.data[0].images.original.mp4
+    cb(null, gif)
+  })
+}
+imageSearch.addEventListener('submit', function (event) {
+  event.preventDefault()
+  getImage(imageSearchField.value, function (err, src) {
+    if (err) return console.error(err)
+    animationStage.src = src
+  })
+})
+var looper
+playSpeed.addEventListener('change', function (event) {
+  var val = event.target.value
+  looper.playSpeed.value = parseInt(val, 10)
+})
+soundSearch.addEventListener('submit', function (event) {
+  event.preventDefault()
+  getSound(soundSearchField.value, function (err, src) {
+    require(['models/Looper'], function (Looper) {
+      var context = null
+      looper = new Looper(context, src, null, function complete () {
+        looper.play()
+      })
+    })
+  })
+})
+</script>
+</body>
+</html>
